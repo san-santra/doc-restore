@@ -18,7 +18,7 @@ from data_gen import PatchifyDB
 if __name__ == '__main__':
     in_path = '../data/ourdata/X/s'
     target_path = '../data/ourdata/Y/s'
-    model_path = './model/m1.pt'
+    model_path = './model/m1-{}-{}.pt'
     patch_size = 256
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -60,5 +60,6 @@ if __name__ == '__main__':
             print('[%d/%d] - loss: %.5f' %
                   (epoch + 1, num_epoch, loss.item()))
 
-    # save model
-    torch.save(model.state_dict(), model_path)
+            # save model
+            torch.save(model.state_dict(),
+                       model_path.format(epoch, loss))
