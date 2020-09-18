@@ -73,8 +73,10 @@ def extract_text_serial(in_im, model, patch_size, stride, device):
     sys.stdout.write('\n')
 
     nz = (count != 0)
-    nz_r = np.tile(nz, (1, 1, nch))
-    out_im[nz_r] = out_im[nz_r] / np.tile(count[..., None], (1, 1, nch))
+    nz_r = np.tile(nz[..., None], (1, 1, nch))
+    count_r = np.tile(count[..., None], (1, 1, nch))
+
+    out_im[nz_r] = out_im[nz_r] / count_r[nz_r]
 
     return out_im
 
@@ -93,18 +95,20 @@ if __name__ == '__main__':
     stride = (10, 10)
 
     if len(sys.argv) < 2 or len(sys.argv) > 3:
-        print("Usage: python <code.py> input_image [output_image]")
-        print("Output is saved in the same path if path"
+        print("Usage: python <code.py> input_image [output_location]")
+        print("Output is saved in the currnet path if path"
               + " is not provided")
 
         sys.exit(0)
 
     input_im_path = sys.argv[1]
+    input_file_name, ext = os.path.splitext(os.path.basename(input_im_path)) 
     if len(sys.argv) == 3:
-        output_im_path = sys.argv[2]
+        output_im_loc = sys.argv[2]
     else:
-        input_im_name, ext = os.path.splitext(input_im_path)
-        output_im_path = input_im_name+"_out."+ext
+        output_im_loc = '.'
+
+    output_im_path = os.path.join(output_im_loc, input_file_name+"_out"+ext)
 
     in_im = np.asarray(Image.open(input_im_path))/255.0
     if len(in_im.shape) == 2:
@@ -117,9 +121,10 @@ if __name__ == '__main__':
     # model.eval()
     model = torch.load(model_wt)
 
+    in_im = np.expand_dims(in_im[:, :, 0], -1)
     out_im = extract_text_serial(in_im, model, patch_size, stride,
                                  device)
 
     # save output
-    out_im_PIL = Image.fromarray(out_im)
+    out_im_PIL = Image.fromarray((np.squeeze(out_im)*255).astype(np.uint8))
     out_im_PIL.save(output_im_path)
