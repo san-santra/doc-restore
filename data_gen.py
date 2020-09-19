@@ -44,7 +44,7 @@ class PatchifyDB(Dataset):
         '''
 
         # since we are taking more than one patch per image
-        im_idx = idx % self.patch_per_image
+        im_idx = idx // self.patch_per_image
 
         # torchvision.transforms expects PIL image or numpy array
         im = Image.open(os.path.join(self.in_path, self.in_files[im_idx]))
