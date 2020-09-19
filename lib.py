@@ -53,9 +53,11 @@ def merge_patches(patches, image_size, stride):
 
             count[i:i+patch_r, j:j+patch_c] += 1
             patch_idx += 1
-
+            
     nz = (count != 0)
-    nz_r = np.tile(nz, (nch, 1, 1))
-    out_im[nz_r] = out_im[nz_r] / np.tile(count[None, ...], (nch, 1, 1))
+    nz_r = np.tile(nz[None, ...], (nch, 1, 1))
+    count_r = np.tile(count[None, ...], (nch, 1, 1))
+
+    out_im[nz_r] = out_im[nz_r] / count_r[nz_r]
 
     return out_im.transpose((1, 2, 0))
