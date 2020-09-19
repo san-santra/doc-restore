@@ -1,5 +1,6 @@
 # Trains the text extraction network
 
+import sys
 import torch
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -19,8 +20,14 @@ if __name__ == '__main__':
     in_path = '../data/ourdata/X/s'
     target_path = '../data/ourdata/Y/s'
     model_path = './model/m1-{}-{}.pt'
+    optimizer_state_path = './model/m1-opt-{}.pt'
     patch_size = 256
-    patch_per_image = 10000
+    patch_per_image = 1
+
+    # checkpointing
+    model_state = './model/m1-4-0.17196649312973022.pt'
+    optimizer_state = './model/m1-opt-4.pt'
+    checkpoint = True
 
     device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
@@ -42,6 +49,12 @@ if __name__ == '__main__':
     model = TextExtractor().to(device)
     ssim = SSIM(window_size=ssim_window_size, size_average=True)
     optimizer = optim.Adam(model.parameters(), lr=0.001, eps=1e-07)
+
+    if checkpoint:
+        model.load_state_dict(torch.load(model_state))
+        optimizer.load_state_dict(torch.load(optimizer_state))
+        print('Restoring checkpoint: {} - {}'.format(
+            model_state, optimizer_state))
     
     # Train
     # ADD: make a tqdm based progress bar
@@ -58,9 +71,14 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
-    print('[%d/%d] - loss: %.5f' %
-          (epoch + 1, num_epoch, loss.item()))
+            sys.stdout.write('[%d/%d] - loss: %.5f\r' %
+                             (epoch + 1, num_epoch, 
+                              loss.item()))
+            sys.stdout.flush()
 
-    # save model
-    torch.save(model.state_dict(),
-               model_path.format(epoch, loss))
+        sys.stdout.write('\n')
+        # save model
+        torch.save(model.state_dict(),
+                   model_path.format(epoch, loss))
+        torch.save(optimizer.state_dict(),
+                   optimizer_state_path.format(epoch))
