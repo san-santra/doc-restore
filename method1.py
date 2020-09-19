@@ -88,7 +88,7 @@ def extract_text_mini_batch(in_im, model, patch_size, stride, device):
     pass
 
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
     model_wt = './model/m1.pt'
 
     patch_size = (256, 256)
@@ -116,11 +116,12 @@ if __name__ == '__main__':
 
     # inference on cpu
     device = torch.device('cpu')
-    # model = TextExtractor()
-    # model.load_state_dict(torch.load(model_wt, map_location=device))
-    # model.eval()
-    model = torch.load(model_wt)
+    model = TextExtractor()
+    model.load_state_dict(torch.load(model_wt, map_location=device))
+    model.eval()
 
+    # main method
+    # extract text
     in_im = np.expand_dims(in_im[:, :, 0], -1)
     out_im = extract_text_serial(in_im, model, patch_size, stride,
                                  device)
