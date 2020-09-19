@@ -20,8 +20,9 @@ if __name__ == '__main__':
     target_path = '../data/ourdata/Y/s'
     model_path = './model/m1-{}-{}.pt'
     patch_size = 256
+    patch_per_image = 10000
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # param
     batch_size = 8
@@ -33,7 +34,7 @@ if __name__ == '__main__':
     transform = transforms.Compose([transforms.Grayscale(),
                                     transforms.ToTensor()])
     db = PatchifyDB(in_path, target_path, patch_size,
-                    transform=transform)
+                    patch_per_image, transform=transform)
     data_loader = DataLoader(db, batch_size=batch_size, shuffle=True,
                              num_workers=num_workers)
 
@@ -57,9 +58,9 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
-            print('[%d/%d] - loss: %.5f' %
-                  (epoch + 1, num_epoch, loss.item()))
+    print('[%d/%d] - loss: %.5f' %
+          (epoch + 1, num_epoch, loss.item()))
 
-            # save model
-            torch.save(model.state_dict(),
-                       model_path.format(epoch, loss))
+    # save model
+    torch.save(model.state_dict(),
+               model_path.format(epoch, loss))
