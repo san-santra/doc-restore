@@ -16,6 +16,7 @@ from pytorch_ssim import SSIM
 from model import TextExtractor
 from data_gen import PatchifyDB
 
+
 if __name__ == '__main__':
     in_path = '../data/ourdata/X/s'
     target_path = '../data/ourdata/Y/s'
@@ -23,13 +24,15 @@ if __name__ == '__main__':
     optimizer_state_path = './model/m1-opt-{}.pt'
     patch_size = 256
     patch_per_image = 1
+    model_save_freq = 5
 
     # checkpointing
+    checkpoint_load = True
     model_state = './model/m1-4-0.17196649312973022.pt'
     optimizer_state = './model/m1-opt-4.pt'
-    checkpoint = True
 
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available()
+                          else "cpu")
 
     # param
     batch_size = 8
@@ -50,12 +53,13 @@ if __name__ == '__main__':
     ssim = SSIM(window_size=ssim_window_size, size_average=True)
     optimizer = optim.Adam(model.parameters(), lr=0.001, eps=1e-07)
 
-    if checkpoint:
+    if checkpoint_load:
         model.load_state_dict(torch.load(model_state))
         optimizer.load_state_dict(torch.load(optimizer_state))
+        model.train()
         print('Restoring checkpoint: {} - {}'.format(
             model_state, optimizer_state))
-    
+
     # Train
     # ADD: make a tqdm based progress bar
     for epoch in range(num_epoch):
@@ -72,13 +76,15 @@ if __name__ == '__main__':
             optimizer.step()
 
             sys.stdout.write('[%d/%d] - loss: %.5f\r' %
-                             (epoch + 1, num_epoch, 
+                             (epoch + 1, num_epoch,
                               loss.item()))
             sys.stdout.flush()
 
         sys.stdout.write('\n')
+
         # save model
-        torch.save(model.state_dict(),
-                   model_path.format(epoch, loss))
-        torch.save(optimizer.state_dict(),
-                   optimizer_state_path.format(epoch))
+        if epoch % model_save_freq == 0:
+            torch.save(model.state_dict(),
+                       model_path.format(epoch, loss))
+            torch.save(optimizer.state_dict(),
+                       optimizer_state_path.format(epoch))

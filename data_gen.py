@@ -1,11 +1,9 @@
 # data generator
 
 import os
-# from skimage.io import imread
-# from skimage import img_as_float
 from PIL import Image
-import numpy as np
 
+import torch
 from torch.utils.data import Dataset
 
 
@@ -47,7 +45,8 @@ class PatchifyDB(Dataset):
         im_idx = idx // self.patch_per_image
 
         # torchvision.transforms expects PIL image or numpy array
-        im = Image.open(os.path.join(self.in_path, self.in_files[im_idx]))
+        im = Image.open(os.path.join(self.in_path,
+                                     self.in_files[im_idx]))
         target = Image.open(os.path.join(self.target_path,
                                          self.target_files[im_idx]))
 
@@ -55,8 +54,8 @@ class PatchifyDB(Dataset):
         w, h = im.size
         new_h, new_w = self.patch_size
 
-        top = np.random.randint(0, h - new_h)
-        left = np.random.randint(0, w - new_w)
+        top = torch.randint(0, h - new_h, (1,)).item()
+        left = torch.randint(0, w - new_w, (1,)).item()
 
         x = im.crop((left, top, left+new_w, top+new_h))
         y = target.crop((left, top, left+new_w, top+new_h))
@@ -72,15 +71,28 @@ if __name__ == '__main__':
     'test code'
     import matplotlib.pyplot as plt
     from torchvision import transforms
+    from torch.utils.data import DataLoader
 
-    in_path = '../data/ourdata/X'
-    target_path = '../data/ourdata/Y'
+    def wif(id):
+        print(id, torch.initial_seed(), flush=True)
+
+    in_path = '../data/ourdata/X/s'
+    target_path = '../data/ourdata/Y/s'
     patch_size = 256
-    patch_per_image = 10000
+    patch_per_image = 8
+    batch_size = 8
+    num_workers = 2
+
     transform = transforms.Compose([transforms.Grayscale(),
                                     transforms.ToTensor()])
     db = PatchifyDB(in_path, target_path, patch_size, patch_per_image,
                     transform=transform)
+    data_loader = DataLoader(db, batch_size=batch_size, shuffle=True,
+                             num_workers=num_workers, worker_init_fn=wif)
+
+    for epoch in range(20):
+        for in_batch, target_batch in data_loader:
+            pass
 
     sample = db[0]
 
