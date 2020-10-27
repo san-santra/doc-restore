@@ -1,8 +1,9 @@
 import sys
 import os
 import torch
-from PIL import Image
+from PIL import Image, ImageFilter
 import numpy as np
+from sklearn.mixture import GaussianMixture as GMM
 
 # local
 from model import TextExtractor
@@ -172,6 +173,84 @@ def extract_text_mini_batch(in_im, model, patch_size, stride,
     return out_im
 
 
+def restore_background(in_im, in_im_PIL, GMM_k=4):
+    X = np.reshape(in_im, (-1, in_im.shape[-1]))
+    clf = GMM(n_components=GMM_k, covariance_type='full')
+    clf.fit(X)
+    mu = clf.means_
+    covar = clf.covariances_
+
+    # # convert to gray the means
+    if in_im_PIL.mode == 'L':
+        gray_mu = mu
+    else:
+        gray_mu = 0.3*mu[:, 0] + 0.59*mu[:, 1] + 0.1*mu[:, 2]
+
+    # highest intensity that is not close to 1 is the bg color
+    if np.sum(in_im > 0.9):
+        gray_mu[gray_mu.argmax()] = 0
+
+    bg_idx = np.argmax(gray_mu)
+
+    # generate background
+    bg = np.random.multivariate_normal(mu[bg_idx], covar[bg_idx],
+                                       in_im.shape[:-1])
+    bg_PIL = Image.fromarray((bg*255).astype('uint8'))
+    bg_smooth = np.array(bg_PIL.filter(
+        ImageFilter.GaussianBlur(radius=5)))
+
+    return bg_smooth
+
+
+def restore_image(in_im_PIL, text_extractor_net, device, patch_size, stride,
+                  inference_batch_size=None):
+
+    if in_im_PIL.mode != 'RGB' or in_im_PIL.mode != 'L':
+        in_im_PIL = in_im_PIL.convert('RGB')
+
+    in_im_uint8 = np.asarray(in_im_PIL)
+    in_im = in_im_uint8/255.0
+    if in_im_PIL.mode == 'L':
+        in_im_gray = in_im
+    else:
+        in_im_gray = np.array(in_im_PIL.convert('L'))/255.0
+
+    in_im_gray = np.expand_dims(in_im_gray, -1)
+    # The trained CNN requires a grayscale image
+
+    # main method
+    # # extract text
+    if inference_batch_size is None:
+        out_im = extract_text(in_im_gray, text_extractor_net, patch_size,
+                              stride, device)
+    else:
+        text_im = extract_text_mini_batch(in_im_gray, text_extractor_net,
+                                          patch_size, stride,
+                                          inference_batch_size, device)
+
+    # Threshold selection
+    text_im_uint8 = (text_im*255).astype('uint8')
+    # bincount requires 1D array
+    hist = np.bincount(text_im_uint8.flatten(), minlength=256)
+    smoothed_hist = np.convolve(hist, np.ones((5, ))/5, mode='valid')
+    thr = np.argmin(smoothed_hist)+2
+    text_mask = text_im_uint8 < thr
+
+    # get background color
+    bg_smooth = restore_background(in_im, in_im_PIL)
+
+    # overlay
+    # foreground color restoration
+    fg = in_im_uint8*text_mask
+
+    # both fg and bg_smooth are uint8
+    out_im = fg + (1-text_mask)*bg_smooth
+
+    out_im_PIL = Image.fromarray(np.squeeze(out_im).astype('uint8'))
+
+    return out_im_PIL
+
+
 if __name__ == '__main__':
     model_wt = './model/upto2017_model_ourdata.pt'
 
@@ -195,9 +274,7 @@ if __name__ == '__main__':
 
     output_im_path = os.path.join(output_im_loc, input_file_name+"_out"+ext)
 
-    in_im = np.asarray(Image.open(input_im_path))/255.0
-    if len(in_im.shape) == 2:
-        in_im = np.expand_dims(in_im, -1)
+    in_im_PIL = Image.open(input_im_path)
 
     # inference on cpu
     device = torch.device('cpu')
@@ -205,14 +282,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load(model_wt, map_location=device))
     model.eval()
 
-    # main method
-    # extract text
-    in_im = np.expand_dims(in_im[:, :, 0], -1)
-    # out_im = extract_text_serial(in_im, model, patch_size, stride,
-    #                              device)
-    out_im = extract_text_mini_batch(in_im, model, patch_size, stride,
-                                     inference_batch_size, device)
-
+    out_im_PIL = restore_image(in_im_PIL, model, device, patch_size, stride,
+                               inference_batch_size)
     # save output
-    out_im_PIL = Image.fromarray((np.squeeze(out_im)*255).astype(np.uint8))
     out_im_PIL.save(output_im_path)
