@@ -48,7 +48,7 @@ class BGRestoreNet(nn.Module):
         self.convt3 = nn.ConvTranspose2d(64, 64, (2, 2), stride=2)
         self.convt4 = nn.ConvTranspose2d(64, 16, (1, 1), stride=2)
         self.convt5 = nn.ConvTranspose2d(16, 8, (2, 2))
-        self.convt6 = nn.ConvTranspose2d(8, 1, (1, 1))
+        self.convt6 = nn.ConvTranspose2d(8, 3, (1, 1))
 
     def forward(self, x):
         x = torch.relu(self.conv1(x))
