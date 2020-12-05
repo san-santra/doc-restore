@@ -202,7 +202,7 @@ def restore_background(in_im, in_im_PIL, GMM_k=4):
     return bg_smooth
 
 
-def restore_image(in_im_PIL, text_extractor_net, device, patch_size, stride,
+def restore_image(in_im_PIL, text_extractor_net, patch_size, stride, device,
                   inference_batch_size=None):
 
     if in_im_PIL.mode != 'RGB' or in_im_PIL.mode != 'L':
@@ -256,7 +256,7 @@ if __name__ == '__main__':
 
     patch_size = (256, 256)
     stride = (10, 10)
-    inference_batch_size = 40
+    inference_batch_size = 80
 
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         print("Usage: python <code.py> input_image [output_location]")
@@ -282,7 +282,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load(model_wt, map_location=device))
     model.eval()
 
-    out_im_PIL = restore_image(in_im_PIL, model, device, patch_size, stride,
+    out_im_PIL = restore_image(in_im_PIL, model, patch_size, stride, device,
                                inference_batch_size)
     # save output
     out_im_PIL.save(output_im_path)
