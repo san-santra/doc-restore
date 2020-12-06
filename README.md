@@ -6,13 +6,14 @@
 * Numpy
 * Scikit-learn (for GMM)
 
-
 ## Run
 `method1.py` and `method2.py` contains the main code. The main difference between the two methods is how the background is restored. In `method1.py` the background is restored using GMM, whereas in `method2.py` the background is restored using a trained CNN. In both the method same network is utilized for extracting the text from the images.
 
+Note: The inference_batch_size parameter may be changed based on available RAM in the system. 
+
 ### Syntax
 ```
-python <code.py> input_image [output_location]")
+python <code.py> input_image [output_location]"
 ```
 
 ## Files
@@ -20,18 +21,20 @@ python <code.py> input_image [output_location]")
 .
 ├── data_gen.py					# data generator for training
 ├── data					# Sample input data
-│   ├── 
-│   └── 
+│   ├── 16.jpg
+│   └── 21.jpg
 ├── gen_bg_gmm.py				# generate backgrounds for training
 ├── lib.py					# Some helper functions
 ├── method1.py					# main method: the background is done using GMM 
 ├── method2.py					# main method2: the background is done using CNN
 ├── model
-│   ├── 
+│   ├── bg_model.pt				# weights og background restoration model
 │   └── upto2017_model_ourdata.pt		# weights of text extractor model
 ├── model.py					# model architectures
 ├── out						# sample output
-│   ├── 16_out_gmm_bg.jpg
+│   ├── 16_out_cnn_bg.jpg			# method2
+│   ├── 16_out_gmm_bg.jpg			# method1
+│   ├── 21_out_cnn_bg.jpg
 │   └── 21_out_gmm_bg.jpg
 ├── pytorch_ssim				# pytorch implementation of SSIM[1]: utilized for training
 │   └── __init__.py

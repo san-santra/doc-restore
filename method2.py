@@ -160,7 +160,7 @@ def patch_process_mini_batch(in_im, model, patch_size, stride,
 
 
 def restore_image(in_im_PIL, text_extractor_net, bg_restore_net, patch_size,
-                  stride, device, inference_batch_size):
+                  stride, device, inference_batch_size, debug=True):
 
     if in_im_PIL.mode != 'RGB':
         in_im_PIL = in_im_PIL.convert('RGB')
@@ -174,6 +174,8 @@ def restore_image(in_im_PIL, text_extractor_net, bg_restore_net, patch_size,
 
     # main method
     # # extract text
+    if debug:
+        print('Extracting text')
     text_im = patch_process_mini_batch(in_im_gray, text_extractor_net,
                                        patch_size, stride,
                                        inference_batch_size, device)
@@ -187,6 +189,8 @@ def restore_image(in_im_PIL, text_extractor_net, bg_restore_net, patch_size,
     text_mask = text_im_uint8 < thr
 
     # get background
+    if debug:
+        print('Restoring background')
     bg = patch_process_mini_batch(in_im, bg_restore_net, patch_size, stride,
                                   inference_batch_size, device)
 
@@ -204,12 +208,12 @@ def restore_image(in_im_PIL, text_extractor_net, bg_restore_net, patch_size,
 
 if __name__ == '__main__':
     # param
-    bg_model_wt = './model/bgm1-960-0.13053849339485168.pt'
+    bg_model_wt = './model/bg_model.pt'
     text_model_wt = './model/upto2017_model_ourdata.pt'
 
     patch_size = (256, 256)
     stride = (10, 10)
-    inference_batch_size = 40
+    inference_batch_size = 100
 
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         print("Usage: python <code.py> input_image [output_location]")
